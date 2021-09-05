@@ -18,6 +18,11 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 #define btnSELECT 4
 #define btnNONE   5
 
+#define opADD     0
+#define opSUB     1
+#define opMUL     2
+#define opDIV     3
+
 #define modeMENU  0
 #define modeGAME  1
 
@@ -42,6 +47,7 @@ int maxEq = 2;
 char* levels[] = { "L1", "L2", "L3", "L4"};
 char* ops[] = { "   +", "   -", "   *", "   :", "  +-", "  *:", "+-*:"};
 char* eqs[] = {"std", "eq "};
+char* sigs[] = {"+", "-", "*", ":"};
 
 int levelBound[] = {10, 20, 100, 999};
 
@@ -125,19 +131,37 @@ void renderTask() {
     // choose chosen operation (0=+, 1=-, 2=*, 3=:)
     curOp = op - 1;
   }
-  a = (int)random(0, levelBound[level - 1]);
-  c = (int)random(0, levelBound[level - 1]);
-  // swap values, if necessary
-  if (a > c) {
-    int tmp = c;
-    c = a;
-    a = tmp;
-  }
 
   // addition
-  if (curOp == 0) {
-    b = c - a;
+  switch(curOp) {
+     case opADD:
+        {
+          a = (int)random(0, levelBound[level - 1]);
+          c = (int)random(0, levelBound[level - 1]);
+          // swap values, if necessary
+          if (a > c) {
+            int tmp = c;
+            c = a;
+            a = tmp;
+          }
+          
+          b = c - a;
+          break;
+        }
+     case opSUB:
+     {
+          b = c - a;
+          break;     
+     }
+     
   }
+
+  String task = "";
+  task.concat(a);
+  task.concat(sigs[curOp]);
+  task.concat(b);
+  task.concat("=?");
+
 Serial.println("..");
 Serial.print("a:");
 Serial.println(a);
