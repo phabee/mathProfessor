@@ -24,8 +24,8 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 int lcd_key     = 0;
 int adc_key_in  = 0;
 int app_mode = modeMENU;
-bool bolMenuRendered = false;
-bool bolTaskRendered = false;
+bool bolScreenRendered = false;
+int waitKeyPress = 500;
 
 // configuration
 int level;
@@ -42,6 +42,8 @@ int maxEq = 2;
 char* levels[] = { "L1", "L2", "L3", "L4"};
 char* ops[] = { "   +", "   -", "   *", "   :", "  +-", "  *:", "+-*:"};
 char* eqs[] = {"std", "eq "};
+
+int levelBound[] = {10, 20, 100, 999};
 
 // read the buttons
 int read_LCD_buttons()
@@ -105,6 +107,53 @@ void renderMenu() {
   }
 }
 
+void renderTask() {
+  randomSeed(millis());
+  int a, b, c, curOp;
+  lcd.setCursor(0, 0);
+  bool isEq = random(10)>=6;
+  if (op == 5) {
+    // randomly choose one op of +/-
+    curOp = (int)random(0,2);
+  } else if (op == 6) {
+    // randomly choose one op of */:
+    curOp = (int)random(2,4);    
+  } else if (op == 7) {
+    // randomly choose one op of +-*:
+    curOp = (int)random(0,4);    
+  } else {
+    // choose chosen operation (0=+, 1=-, 2=*, 3=:)
+    curOp = op - 1;
+  }
+  a = (int)random(0, levelBound[level - 1]);
+  c = (int)random(0, levelBound[level - 1]);
+  // swap values, if necessary
+  if (a > c) {
+    int tmp = c;
+    c = a;
+    a = tmp;
+  }
+
+  // addition
+  if (curOp == 0) {
+    b = c - a;
+  }
+Serial.println("..");
+Serial.print("a:");
+Serial.println(a);
+Serial.print("b:");
+Serial.println(b);
+Serial.print("c:");
+Serial.println(c);
+String task = "";
+  task.concat(a);
+  task.concat("+");
+  task.concat(b);
+  task.concat("=?");
+  
+  lcd.print(task);
+}
+
 void setup()
 {
   Serial.begin(9600);
@@ -113,8 +162,7 @@ void setup()
   adc_key_in  = 0;
   app_mode = modeMENU;
   menuPos = 0;
-  bolMenuRendered = false;
-  bolTaskRendered = false;
+  bolScreenRendered = false;
   app_mode = modeMENU;
   lcd.begin(16, 2);
   restoreConfigFromEPROM();
@@ -125,17 +173,22 @@ void loop()
   // render Content
   if (app_mode == modeMENU) {
     // render Menu
-    if (!bolMenuRendered) {
+    if (!bolScreenRendered) {
       lcd.setCursor(0, 0);
       lcd.print("*Math-Professor*");
       renderMenu();
-      bolMenuRendered = true;
+      bolScreenRendered = true;
+      delay(waitKeyPress);
     }
   } else {
     // render Game Task
-    bolTaskRendered = true;
+    if (!bolScreenRendered) {
+      renderTask();
+      bolScreenRendered = true;
+      delay(waitKeyPress);
+    }
   }
-
+  
   // handle input
   lcd_key = read_LCD_buttons();
   if (app_mode == modeMENU) {
@@ -145,15 +198,15 @@ void loop()
         {
           if (menuPos < menuSize-1) {
             menuPos++;
-            bolMenuRendered = false;            
-          }
+            bolScreenRendered = false;            
+          }         
           break;
         }
       case btnLEFT:
         {
           if (menuPos > 0) {
             menuPos--;
-            bolMenuRendered = false;
+            bolScreenRendered = false;
            }
           break;
         }
@@ -161,13 +214,13 @@ void loop()
         {
           if (menuPos == 0 && level < maxLevel) {
              level++;
-             bolMenuRendered = false;
+             bolScreenRendered = false;
           } else if (menuPos == 1 && op < maxOp) {
              op++;
-             bolMenuRendered = false;
+             bolScreenRendered = false;
           } else if (menuPos == 2 && eq < maxEq) {
             eq++;
-            bolMenuRendered = false;
+            bolScreenRendered = false;
           }
           break;
         }
@@ -175,35 +228,30 @@ void loop()
         {
           if (menuPos == 0 && level > 1) {
              level--;
-             bolMenuRendered = false;
+             bolScreenRendered = false;
           } else if (menuPos == 1 && op > 1) {
              op--;
-             bolMenuRendered = false;
+             bolScreenRendered = false;
           } else if (menuPos == 2 && eq > 1) {
             eq--;
-            bolMenuRendered = false;
+            bolScreenRendered = false;
           }
           break;
         }
       case btnSELECT:
         {
+          app_mode = modeGAME;
+          bolScreenRendered = false;
           break;
         }  
      }
-
-    // wait until key released
-    while(true) {
-      lcd_key = read_LCD_buttons();
-      if (lcd_key ==  btnNONE) break;   
-    }
-
      
   } else if (app_mode == modeGAME) {
 
   }
 
-//  Serial.print("menuPos: ");
-//   Serial.println(menuPos);
+  //Serial.print("menuPos: ");
+  //Serial.println(menuPos);
 
   //  lcd.setCursor(9, 1);           // move cursor to second line "1" and 9 spaces over
   //  lcd.print(millis() / 1000);    // display seconds elapsed since power-up
