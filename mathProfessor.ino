@@ -30,7 +30,7 @@ int lcd_key     = 0;
 int adc_key_in  = 0;
 int app_mode = modeMENU;
 bool bolScreenRendered = false;
-int waitKeyPress = 500;
+int waitKeyPress = 350;
 
 // configuration
 int level;
@@ -49,7 +49,9 @@ char* ops[] = { "   +", "   -", "   *", "   :", "  +-", "  *:", "+-*:"};
 char* eqs[] = {"std", "eq "};
 char* sigs[] = {"+", "-", "*", ":"};
 
-int levelBound[] = {10, 20, 100, 999};
+String results[4];
+
+int levelBound[] = {10, 20, 100, 1000};
 
 // read the buttons
 int read_LCD_buttons()
@@ -116,66 +118,98 @@ void renderMenu() {
 void renderTask() {
   randomSeed(millis());
   int a, b, c, curOp;
-  lcd.setCursor(0, 0);
-  bool isEq = random(10)>=6;
+  bool isEq = random(10) >= 6;
   if (op == 5) {
     // randomly choose one op of +/-
-    curOp = (int)random(0,2);
+    curOp = (int)random(0, 2);
   } else if (op == 6) {
     // randomly choose one op of */:
-    curOp = (int)random(2,4);    
+    curOp = (int)random(2, 4);
   } else if (op == 7) {
     // randomly choose one op of +-*:
-    curOp = (int)random(0,4);    
+    curOp = (int)random(0, 4);
   } else {
     // choose chosen operation (0=+, 1=-, 2=*, 3=:)
     curOp = op - 1;
   }
 
-  // addition
-  switch(curOp) {
-     case opADD:
-        {
-          a = (int)random(0, levelBound[level - 1]);
-          c = (int)random(0, levelBound[level - 1]);
-          // swap values, if necessary
-          if (a > c) {
-            int tmp = c;
-            c = a;
-            a = tmp;
-          }
-          
-          b = c - a;
-          break;
+  switch (curOp) {
+    case opADD:
+      {
+        a = (int)random(0, levelBound[level - 1]);
+        c = (int)random(0, levelBound[level - 1]);
+        // swap values, if necessary
+        if (a > c) {
+          int tmp = c;
+          c = a;
+          a = tmp;
         }
-     case opSUB:
-     {
-          b = c - a;
-          break;     
-     }
-     
+        b = c - a;
+        break;
+      }
+    case opSUB:
+      {
+        a = (int)random(0, levelBound[level - 1]);
+        c = (int)random(0, levelBound[level - 1]);
+        // swap values, if necessary
+        if (a < c) {
+          int tmp = c;
+          c = a;
+          a = tmp;
+        }
+        b = a - c;
+        break;
+      }
+    case opMUL:
+    case opDIV:
+      {
+        a = (int)random(1, levelBound[level - 1]);
+        b = (a == 0) ? (int)random(0, levelBound[level - 1]) : ((int)random(0, (int)(levelBound[level - 1] / a)));
+        // swap a and b sometimes, to not always have a be the smaller factor
+        if (random(0, 2) == 0 || b == 0 && curOp == opDIV) {
+          int tmp = a;
+          a = b;
+          b = tmp;
+        }
+        c = a * b;
+        if (curOp == opDIV) {
+          // now convert to div calc: i.e. c / a = b
+          if (a != 0) {
+            b = a;
+            a = c;
+            c = a / b;
+          } else if (b != 0) {
+            a = c;
+            c = a / b;
+          } else {
+            b = (int)random(1, levelBound[level - 1]);
+            c = a / b;
+          }
+        }
+        break;
+      }
   }
 
   String task = "";
   task.concat(a);
+  task.concat(" ");
   task.concat(sigs[curOp]);
+  task.concat(" ");
   task.concat(b);
-  task.concat("=?");
+  task.concat(" ");
+  task.concat("= ?");
 
-Serial.println("..");
-Serial.print("a:");
-Serial.println(a);
-Serial.print("b:");
-Serial.println(b);
-Serial.print("c:");
-Serial.println(c);
-String task = "";
-  task.concat(a);
-  task.concat("+");
-  task.concat(b);
-  task.concat("=?");
-  
+  lcd.clear();
   lcd.print(task);
+
+  Serial.println("..");
+  Serial.print("a:");
+  Serial.println(a);
+  Serial.print("b:");
+  Serial.println(b);
+  Serial.print("c:");
+  Serial.println(c);
+
 }
 
 void setup()
@@ -212,7 +246,7 @@ void loop()
       delay(waitKeyPress);
     }
   }
-  
+
   // handle input
   lcd_key = read_LCD_buttons();
   if (app_mode == modeMENU) {
@@ -220,10 +254,10 @@ void loop()
     {
       case btnRIGHT:
         {
-          if (menuPos < menuSize-1) {
+          if (menuPos < menuSize - 1) {
             menuPos++;
-            bolScreenRendered = false;            
-          }         
+            bolScreenRendered = false;
+          }
           break;
         }
       case btnLEFT:
@@ -231,17 +265,17 @@ void loop()
           if (menuPos > 0) {
             menuPos--;
             bolScreenRendered = false;
-           }
+          }
           break;
         }
       case btnUP:
         {
           if (menuPos == 0 && level < maxLevel) {
-             level++;
-             bolScreenRendered = false;
+            level++;
+            bolScreenRendered = false;
           } else if (menuPos == 1 && op < maxOp) {
-             op++;
-             bolScreenRendered = false;
+            op++;
+            bolScreenRendered = false;
           } else if (menuPos == 2 && eq < maxEq) {
             eq++;
             bolScreenRendered = false;
@@ -251,11 +285,11 @@ void loop()
       case btnDOWN:
         {
           if (menuPos == 0 && level > 1) {
-             level--;
-             bolScreenRendered = false;
+            level--;
+            bolScreenRendered = false;
           } else if (menuPos == 1 && op > 1) {
-             op--;
-             bolScreenRendered = false;
+            op--;
+            bolScreenRendered = false;
           } else if (menuPos == 2 && eq > 1) {
             eq--;
             bolScreenRendered = false;
@@ -267,9 +301,9 @@ void loop()
           app_mode = modeGAME;
           bolScreenRendered = false;
           break;
-        }  
-     }
-     
+        }
+    }
+
   } else if (app_mode == modeGAME) {
 
   }
