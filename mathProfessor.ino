@@ -40,6 +40,7 @@ int eq;
 int menuPos;
 // number of menu items: 3 (levels, ops, eq)
 int menuSize = 3;
+int taskMenuSize = 4;
 int maxLevel = 4;
 int maxOp = 7;
 int maxEq = 2;
@@ -49,7 +50,10 @@ char* ops[] = { "   +", "   -", "   *", "   :", "  +-", "  *:", "+-*:"};
 char* eqs[] = {"std", "eq "};
 char* sigs[] = {"+", "-", "*", ":"};
 
+// solution variables
 String results[4];
+int selectedResult;
+int trueResult;
 
 int levelBound[] = {10, 20, 100, 1000};
 
@@ -115,6 +119,47 @@ void renderMenu() {
   }
 }
 
+void renderTaskMenu() {
+  int len = 0;
+  for (int i = 0; i < taskMenuSize; i++) {
+    
+    switch (i) {
+      case 0:
+        lcd.setCursor(0, 1);
+        if (menuPos == i) lcd.print("["); else lcd.print("("); len++;
+        lcd.setCursor(1, 1);
+        lcd.print(results[0]); len+=results[0].length();
+        lcd.setCursor(len, 1);
+        if (menuPos == i) lcd.print("]"); else lcd.print(")"); len++;
+        break;
+      case 1:
+        lcd.setCursor(len, 1); len++;
+        if (menuPos == i) lcd.print("["); else lcd.print("(");
+        lcd.setCursor(5, 1);
+        lcd.print(ops[op - 1]);
+        lcd.setCursor(9, 1);
+        if (menuPos == i) lcd.print("]"); else lcd.print(")");
+        break;
+      case 2:
+        lcd.setCursor(10, 1);
+        if (menuPos == i) lcd.print("["); else lcd.print("(");
+        lcd.setCursor(11, 1);
+        lcd.print(eqs[eq - 1]);
+        lcd.setCursor(14, 1);
+        if (menuPos == i) lcd.print("]"); else lcd.print(")");
+        break;
+      case 3:
+        lcd.setCursor(10, 1);
+        if (menuPos == i) lcd.print("["); else lcd.print("(");
+        lcd.setCursor(11, 1);
+        lcd.print(eqs[eq - 1]);
+        lcd.setCursor(14, 1);
+        if (menuPos == i) lcd.print("]"); else lcd.print(")");
+        break;
+    }
+  }
+}
+
 void renderTask() {
   randomSeed(millis());
   int a, b, c, curOp;
@@ -163,14 +208,21 @@ void renderTask() {
     case opMUL:
     case opDIV:
       {
-        a = (int)random(1, levelBound[level - 1]);
-        b = (a == 0) ? (int)random(0, levelBound[level - 1]) : ((int)random(0, (int)(levelBound[level - 1] / a)));
+        // random gen very frequently gives 0! :P thus exclude zero here, generate zeros later
+        a = (int)random(1, (int)sqrt(levelBound[level - 1]));
+        b = (int)random(1, (int)(levelBound[level - 1] / a));
         // swap a and b sometimes, to not always have a be the smaller factor
-        if (random(0, 2) == 0 || b == 0 && curOp == opDIV) {
+        if (random(0, 2) == 0) {
           int tmp = a;
           a = b;
           b = tmp;
         }
+        // now generate zero
+        if (random(1, 13) == 12) {
+          b = 0;
+        }
+        Serial.print("a:");Serial.println(a);
+        Serial.print("b:");Serial.println(b);
         c = a * b;
         if (curOp == opDIV) {
           // now convert to div calc: i.e. c / a = b
@@ -178,16 +230,36 @@ void renderTask() {
             b = a;
             a = c;
             c = a / b;
+            Serial.println("case1");
+            Serial.print("a:");Serial.println(a);
+            Serial.print("b:");Serial.println(b);
           } else if (b != 0) {
             a = c;
             c = a / b;
+            Serial.println("case2");
+            Serial.print("a:");Serial.println(a);
+            Serial.print("b:");Serial.println(b);
           } else {
             b = (int)random(1, levelBound[level - 1]);
-            c = a / b;
+            c = 0;
+            Serial.println("case3");
+            Serial.print("a:");Serial.println(a);
+            Serial.print("b:");Serial.println(b);
           }
         }
         break;
       }
+
+      // generate result options
+      results[0] = "229";
+      results[1] = "372";
+      results[2] = "  "+c;
+      results[3] = "249";
+
+      lcd.setCursor(0, 1);
+      selectedResult = 0;
+      trueResult = 2;
+
   }
 
   String task = "";
@@ -201,6 +273,8 @@ void renderTask() {
 
   lcd.clear();
   lcd.print(task);
+
+  
 
   Serial.println("..");
   Serial.print("a:");
@@ -242,6 +316,7 @@ void loop()
     // render Game Task
     if (!bolScreenRendered) {
       renderTask();
+      renderTaskMenu();
       bolScreenRendered = true;
       delay(waitKeyPress);
     }
@@ -307,49 +382,5 @@ void loop()
   } else if (app_mode == modeGAME) {
 
   }
-
-  //Serial.print("menuPos: ");
-  //Serial.println(menuPos);
-
-  //  lcd.setCursor(9, 1);           // move cursor to second line "1" and 9 spaces over
-  //  lcd.print(millis() / 1000);    // display seconds elapsed since power-up
-  //
-  //
-  //  lcd.setCursor(0, 1);           // move to the begining of the second line
-  //  lcd_key = read_LCD_buttons();  // read the buttons
-  //
-  //  switch (lcd_key)               // depending on which button was pushed, we perform an action
-  //  {
-  //    case btnRIGHT:
-  //      {
-  //        lcd.print("RIGHT ");
-  //        break;
-  //      }
-  //    case btnLEFT:
-  //      {
-  //        lcd.print("LEFT   ");
-  //        break;
-  //      }
-  //    case btnUP:
-  //      {
-  //        lcd.print("UP    ");
-  //        break;
-  //      }
-  //    case btnDOWN:
-  //      {
-  //        lcd.print("DOWN  ");
-  //        break;
-  //      }
-  //    case btnSELECT:
-  //      {
-  //        lcd.print("SELECT");
-  //        break;
-  //      }
-  //    case btnNONE:
-  //      {
-  //        lcd.print("NONE  ");
-  //        break;
-  //      }
-  //  }
 
 }
