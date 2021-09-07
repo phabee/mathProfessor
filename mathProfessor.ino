@@ -33,8 +33,8 @@ bool bolMenuRendered = false;
 bool bolTaskRendered = false;
 bool bolShowResultScreen = false;
 int waitKeyPress = 350;
-int waitResultScreen = 3000;
-int waitResultScreenSuccess = 1000;
+int waitResultScreen = 3500;
+int waitResultScreenSuccess = 2000;
 
 // configuration
 int level;
@@ -397,7 +397,8 @@ bool renderResultScreen() {
     lcd.print("*Oh, not quite!*"); 
   }  
   lcd.setCursor(0, 1);
-  lcd.print(solution); 
+  lcd.print(solution);
+  return retVal;
 }
 
 void setup()
