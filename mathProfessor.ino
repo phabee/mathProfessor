@@ -40,12 +40,17 @@ int level;
 int op;
 int eq;
 
+// number of menu entries in the main menu
 int menuPos;
 // number of menu items: 3 (levels, ops, eq)
 int menuSize = 3;
+// number of task menu entries (chooseable results)
 int taskMenuSize = 4;
+// number of level options
 int maxLevel = 4;
+// number of operations options
 int maxOp = 7;
+// number of equation options
 int maxEq = 2;
 
 char* levels[] = { "L1", "L2", "L3", "L4"};
@@ -177,10 +182,9 @@ int getAdditionalExclusiveRandom(int a, int b, int q, int r, int c) {
   int retVal;
   do {
     retVal = (int)random(a, b);      
-  } while (retVal == r || retVal == r || retVal == c);
+  } while (retVal == q || retVal == r || retVal == c);
   return retVal;
 }
-
 
 void renderTask() {
   randomSeed(millis());
@@ -273,53 +277,98 @@ void renderTask() {
       }
   }
 
-  // generate result options  
-  int q = getLowerRandom(0, c);
-  int r = getHigherRandom(c, levelBound[level - 1]);
-  int p = getAdditionalExclusiveRandom(0, levelBound[level - 1], q, r, c);  
+  // now let's render the result options and the task-output, depending on wheter 
+  // equations are enabled or not
+  String task = "";
+  // determine the position of the menu we want to place the correct result
   trueResult = (int)random(0, 4);
-  switch (trueResult) {
-    case 0:
-      results[0] = String(c);
-      results[1] = String(p);
-      results[2] = String(q);
-      results[3] = String(r);
-      break;
-    case 1:
-      results[0] = String(p);
-      results[1] = String(c);
-      results[2] = String(q);
-      results[3] = String(r);
-      break;
-    case 2: 
-      results[0] = String(p);
-      results[1] = String(q);
-      results[2] = String(c);
-      results[3] = String(r);
-      break;
-    case 3: 
-      results[0] = String(p);
-      results[1] = String(q);
-      results[2] = String(r);
-      results[3] = String(c);
-      break;              
+  // determine whether to render an ordinary task or an equation
+  // in 30% of tasks we want an equation, if equations are enabled
+  if (eq == 1 && (int)random(0,10) > 6) {
+    // we render an equation of the form a op ? = c (b is the answer)
+    // generate result options  
+    int q = getLowerRandom(0, c);
+    int r = getHigherRandom(c, levelBound[level - 1]);
+    int p = getAdditionalExclusiveRandom(0, levelBound[level - 1], q, r, c);  
+    switch (trueResult) {
+      case 0:
+        results[0] = String(c);
+        results[1] = String(p);
+        results[2] = String(q);
+        results[3] = String(r);
+        break;
+      case 1:
+        results[0] = String(p);
+        results[1] = String(c);
+        results[2] = String(q);
+        results[3] = String(r);
+        break;
+      case 2: 
+        results[0] = String(p);
+        results[1] = String(q);
+        results[2] = String(c);
+        results[3] = String(r);
+        break;
+      case 3: 
+        results[0] = String(p);
+        results[1] = String(q);
+        results[2] = String(r);
+        results[3] = String(c);
+        break;              
+    }
+  
+    task.concat(a);
+    task.concat(" ");
+    task.concat(sigs[curOp]);
+    task.concat(" ");
+    task.concat(b);
+    task.concat(" ");
+    task.concat("= ?");
+  } else {
+    // we render an ordinary task of the form a OP b = ? (c is the answer)
+    // generate result options  
+    int q = getLowerRandom(0, b);
+    int r = getHigherRandom(b, levelBound[level - 1]);
+    int p = getAdditionalExclusiveRandom(0, levelBound[level - 1], q, r, b);  
+
+    switch (trueResult) {
+      case 0:
+        results[0] = String(b);
+        results[1] = String(p);
+        results[2] = String(q);
+        results[3] = String(r);
+        break;
+      case 1:
+        results[0] = String(p);
+        results[1] = String(b);
+        results[2] = String(q);
+        results[3] = String(r);
+        break;
+      case 2: 
+        results[0] = String(p);
+        results[1] = String(q);
+        results[2] = String(b);
+        results[3] = String(r);
+        break;
+      case 3: 
+        results[0] = String(p);
+        results[1] = String(q);
+        results[2] = String(r);
+        results[3] = String(b);
+        break;              
+    }
+    
+    task.concat(a);
+    task.concat(" ");
+    task.concat(sigs[curOp]);
+    task.concat(" ");
+    task.concat("?");
+    task.concat(" ");
+    task.concat("= ");
+    task.concat(c);
+    
   }
   
-  Serial.print("results[0]:"); Serial.println(results[0]);
-  Serial.print("results[1]:"); Serial.println(results[1]);
-  Serial.print("results[2]:"); Serial.println(results[2]);
-  Serial.print("results[3]:"); Serial.println(results[3]);
-
-  lcd.setCursor(0, 1);
-  String task = "";
-  task.concat(a);
-  task.concat(" ");
-  task.concat(sigs[curOp]);
-  task.concat(" ");
-  task.concat(b);
-  task.concat(" ");
-  task.concat("= ?");
-
   lcd.clear();
   lcd.print(task);
 
@@ -418,12 +467,15 @@ void loop()
           if (menuPos == 0 && level < maxLevel) {
             level++;
             bolMenuRendered = false;
+            EEPROM.write(menuPos, level);
           } else if (menuPos == 1 && op < maxOp) {
             op++;
             bolMenuRendered = false;
+            EEPROM.write(menuPos, op);
           } else if (menuPos == 2 && eq < maxEq) {
             eq++;
             bolMenuRendered = false;
+            EEPROM.write(menuPos, eq);
           }
           break;
         }
@@ -432,12 +484,15 @@ void loop()
           if (menuPos == 0 && level > 1) {
             level--;
             bolMenuRendered = false;
+            EEPROM.write(menuPos, level);
           } else if (menuPos == 1 && op > 1) {
             op--;
             bolMenuRendered = false;
+            EEPROM.write(menuPos, op);
           } else if (menuPos == 2 && eq > 1) {
             eq--;
             bolMenuRendered = false;
+            EEPROM.write(menuPos, eq);
           }
           break;
         }
@@ -479,5 +534,4 @@ void loop()
         }
     }
   }
-
 }
