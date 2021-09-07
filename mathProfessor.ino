@@ -29,8 +29,11 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 int lcd_key     = 0;
 int adc_key_in  = 0;
 int app_mode = modeMENU;
-bool bolScreenRendered = false;
+bool bolMenuRendered = false;
+bool bolTaskRendered = false;
+bool bolShowResultScreen = false;
 int waitKeyPress = 350;
+int waitResultScreen = 2000;
 
 // configuration
 int level;
@@ -51,8 +54,7 @@ char* eqs[] = {"std", "eq "};
 char* sigs[] = {"+", "-", "*", ":"};
 
 // solution variables
-String results[4];
-int selectedResult;
+String results[4] = {"   ", "   ", "   ", "   "};
 int trueResult;
 
 int levelBound[] = {10, 20, 100, 1000};
@@ -122,43 +124,63 @@ void renderMenu() {
 void renderTaskMenu() {
   int len = 0;
   for (int i = 0; i < taskMenuSize; i++) {
-    
     switch (i) {
       case 0:
         lcd.setCursor(0, 1);
-        if (menuPos == i) lcd.print("["); else lcd.print("("); len++;
-        lcd.setCursor(1, 1);
-        lcd.print(results[0]); len+=results[0].length();
+        if (menuPos == i) lcd.print(">"); else lcd.print(" "); len++;
         lcd.setCursor(len, 1);
-        if (menuPos == i) lcd.print("]"); else lcd.print(")"); len++;
+        lcd.print(results[0]); len += results[0].length();
         break;
       case 1:
-        lcd.setCursor(len, 1); len++;
-        if (menuPos == i) lcd.print("["); else lcd.print("(");
-        lcd.setCursor(5, 1);
-        lcd.print(ops[op - 1]);
-        lcd.setCursor(9, 1);
-        if (menuPos == i) lcd.print("]"); else lcd.print(")");
+        lcd.setCursor(len, 1);
+        if (menuPos == i) lcd.print(">"); else lcd.print(" "); len++;
+        lcd.setCursor(len, 1);
+        lcd.print(results[1]); len += results[1].length();
         break;
       case 2:
-        lcd.setCursor(10, 1);
-        if (menuPos == i) lcd.print("["); else lcd.print("(");
-        lcd.setCursor(11, 1);
-        lcd.print(eqs[eq - 1]);
-        lcd.setCursor(14, 1);
-        if (menuPos == i) lcd.print("]"); else lcd.print(")");
+        lcd.setCursor(len, 1);
+        if (menuPos == i) lcd.print(">"); else lcd.print(" "); len++;
+        lcd.setCursor(len, 1);
+        lcd.print(results[2]); len += results[2].length();
         break;
       case 3:
-        lcd.setCursor(10, 1);
-        if (menuPos == i) lcd.print("["); else lcd.print("(");
-        lcd.setCursor(11, 1);
-        lcd.print(eqs[eq - 1]);
-        lcd.setCursor(14, 1);
-        if (menuPos == i) lcd.print("]"); else lcd.print(")");
+        lcd.setCursor(len, 1);
+        if (menuPos == i) lcd.print(">"); else lcd.print(" "); len++;
+        lcd.setCursor(len, 1);
+        lcd.print(results[3]); len += results[3].length();
         break;
     }
   }
 }
+
+int getLowerRandom(int a, int notC) {
+  int retVal;
+  if (a == notC) return a-1;
+  return (int) random(a, notC);  
+}
+
+int getHigherRandom(int notC, int b) {
+  int retVal;
+  if (b == notC) return notC+1;
+  return (int) random(notC+1, b);  
+}
+
+int getRandomExcludeNumber(int a, int b, int notC) {
+  int retVal;
+  do {
+    retVal = (int)random(a, b);  
+  } while (retVal == notC);
+  return retVal;  
+}
+
+int getAdditionalExclusiveRandom(int a, int b, int q, int r, int c) {
+  int retVal;
+  do {
+    retVal = (int)random(a, b);      
+  } while (retVal == r || retVal == r || retVal == c);
+  return retVal;
+}
+
 
 void renderTask() {
   randomSeed(millis());
@@ -221,8 +243,8 @@ void renderTask() {
         if (random(1, 13) == 12) {
           b = 0;
         }
-        Serial.print("a:");Serial.println(a);
-        Serial.print("b:");Serial.println(b);
+        Serial.print("a:"); Serial.println(a);
+        Serial.print("b:"); Serial.println(b);
         c = a * b;
         if (curOp == opDIV) {
           // now convert to div calc: i.e. c / a = b
@@ -231,37 +253,64 @@ void renderTask() {
             a = c;
             c = a / b;
             Serial.println("case1");
-            Serial.print("a:");Serial.println(a);
-            Serial.print("b:");Serial.println(b);
+            Serial.print("a:"); Serial.println(a);
+            Serial.print("b:"); Serial.println(b);
           } else if (b != 0) {
             a = c;
             c = a / b;
             Serial.println("case2");
-            Serial.print("a:");Serial.println(a);
-            Serial.print("b:");Serial.println(b);
+            Serial.print("a:"); Serial.println(a);
+            Serial.print("b:"); Serial.println(b);
           } else {
             b = (int)random(1, levelBound[level - 1]);
             c = 0;
             Serial.println("case3");
-            Serial.print("a:");Serial.println(a);
-            Serial.print("b:");Serial.println(b);
+            Serial.print("a:"); Serial.println(a);
+            Serial.print("b:"); Serial.println(b);
           }
         }
         break;
       }
-
-      // generate result options
-      results[0] = "229";
-      results[1] = "372";
-      results[2] = "  "+c;
-      results[3] = "249";
-
-      lcd.setCursor(0, 1);
-      selectedResult = 0;
-      trueResult = 2;
-
   }
 
+  // generate result options  
+  int q = getLowerRandom(0, c);
+  int r = getHigherRandom(c, levelBound[level - 1]);
+  int p = getAdditionalExclusiveRandom(0, levelBound[level - 1], q, r, c);  
+  trueResult = (int)random(0, 4);
+  switch (trueResult) {
+    case 0:
+      results[0] = String(c);
+      results[1] = String(p);
+      results[2] = String(q);
+      results[3] = String(r);
+      break;
+    case 1:
+      results[0] = String(p);
+      results[1] = String(c);
+      results[2] = String(q);
+      results[3] = String(r);
+      break;
+    case 2: 
+      results[0] = String(p);
+      results[1] = String(q);
+      results[2] = String(c);
+      results[3] = String(r);
+      break;
+    case 3: 
+      results[0] = String(p);
+      results[1] = String(q);
+      results[2] = String(r);
+      results[3] = String(c);
+      break;              
+  }
+  
+  Serial.print("results[0]:"); Serial.println(results[0]);
+  Serial.print("results[1]:"); Serial.println(results[1]);
+  Serial.print("results[2]:"); Serial.println(results[2]);
+  Serial.print("results[3]:"); Serial.println(results[3]);
+
+  lcd.setCursor(0, 1);
   String task = "";
   task.concat(a);
   task.concat(" ");
@@ -274,8 +323,6 @@ void renderTask() {
   lcd.clear();
   lcd.print(task);
 
-  
-
   Serial.println("..");
   Serial.print("a:");
   Serial.println(a);
@@ -286,6 +333,16 @@ void renderTask() {
 
 }
 
+void renderResultScreen() {
+  lcd.clear();
+  if (menuPos == trueResult) {
+    lcd.print("*Correct!*"); 
+  } else {
+    lcd.print("*Shit!*"); 
+  }
+  
+}
+
 void setup()
 {
   Serial.begin(9600);
@@ -294,7 +351,9 @@ void setup()
   adc_key_in  = 0;
   app_mode = modeMENU;
   menuPos = 0;
-  bolScreenRendered = false;
+  bolMenuRendered = false;
+  bolTaskRendered = false;
+  bolShowResultScreen = false;
   app_mode = modeMENU;
   lcd.begin(16, 2);
   restoreConfigFromEPROM();
@@ -305,20 +364,31 @@ void loop()
   // render Content
   if (app_mode == modeMENU) {
     // render Menu
-    if (!bolScreenRendered) {
-      lcd.setCursor(0, 0);
+    if (!bolMenuRendered) {
+      lcd.clear();
       lcd.print("*Math-Professor*");
       renderMenu();
-      bolScreenRendered = true;
+      bolMenuRendered = true;
       delay(waitKeyPress);
     }
   } else {
-    // render Game Task
-    if (!bolScreenRendered) {
-      renderTask();
-      renderTaskMenu();
-      bolScreenRendered = true;
-      delay(waitKeyPress);
+    // check, whether result screen must be rendered
+    if (bolShowResultScreen) {
+      renderResultScreen();
+      bolShowResultScreen = false;
+      menuPos = 0;
+      delay(waitResultScreen);
+    } else {
+      // render Game Task
+      if (!bolTaskRendered) {
+         renderTask();
+         bolTaskRendered = true;
+      }
+      if (!bolMenuRendered) {
+        renderTaskMenu();
+        bolMenuRendered = true;
+        delay(waitKeyPress);
+      }
     }
   }
 
@@ -331,7 +401,7 @@ void loop()
         {
           if (menuPos < menuSize - 1) {
             menuPos++;
-            bolScreenRendered = false;
+            bolMenuRendered = false;
           }
           break;
         }
@@ -339,7 +409,7 @@ void loop()
         {
           if (menuPos > 0) {
             menuPos--;
-            bolScreenRendered = false;
+            bolMenuRendered = false;
           }
           break;
         }
@@ -347,13 +417,13 @@ void loop()
         {
           if (menuPos == 0 && level < maxLevel) {
             level++;
-            bolScreenRendered = false;
+            bolMenuRendered = false;
           } else if (menuPos == 1 && op < maxOp) {
             op++;
-            bolScreenRendered = false;
+            bolMenuRendered = false;
           } else if (menuPos == 2 && eq < maxEq) {
             eq++;
-            bolScreenRendered = false;
+            bolMenuRendered = false;
           }
           break;
         }
@@ -361,26 +431,53 @@ void loop()
         {
           if (menuPos == 0 && level > 1) {
             level--;
-            bolScreenRendered = false;
+            bolMenuRendered = false;
           } else if (menuPos == 1 && op > 1) {
             op--;
-            bolScreenRendered = false;
+            bolMenuRendered = false;
           } else if (menuPos == 2 && eq > 1) {
             eq--;
-            bolScreenRendered = false;
+            bolMenuRendered = false;
           }
           break;
         }
       case btnSELECT:
         {
           app_mode = modeGAME;
-          bolScreenRendered = false;
+          bolMenuRendered = false;
+          bolTaskRendered = false;
+          menuPos = 0;
           break;
         }
     }
-
   } else if (app_mode == modeGAME) {
-
+    // we are in game mode, user gets presented a task and can select the result
+    switch (lcd_key)
+    {
+      case btnRIGHT:
+        {
+          if (menuPos < taskMenuSize - 1) {
+            menuPos++;
+            bolMenuRendered = false;
+          }
+          break;
+        }
+      case btnLEFT:
+        {
+          if (menuPos > 0) {
+            menuPos--;
+            bolMenuRendered = false;
+          }
+          break;
+        }
+      case btnSELECT:
+        {
+          bolTaskRendered = false;
+          bolMenuRendered = false;
+          bolShowResultScreen = true;
+          break;
+        }
+    }
   }
 
 }
