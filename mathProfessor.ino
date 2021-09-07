@@ -33,7 +33,8 @@ bool bolMenuRendered = false;
 bool bolTaskRendered = false;
 bool bolShowResultScreen = false;
 int waitKeyPress = 350;
-int waitResultScreen = 2000;
+int waitResultScreen = 3000;
+int waitResultScreenSuccess = 1000;
 
 // configuration
 int level;
@@ -61,6 +62,7 @@ char* sigs[] = {"+", "-", "*", ":"};
 // solution variables
 String results[4] = {"   ", "   ", "   ", "   "};
 int trueResult;
+String solution;
 
 int levelBound[] = {10, 20, 100, 1000};
 
@@ -324,6 +326,8 @@ void renderTask() {
     task.concat(b);
     task.concat(" ");
     task.concat("= ?");
+    solution = String(task);
+    solution.replace("?", String(c));
   } else {
     // we render an ordinary task of the form a OP b = ? (c is the answer)
     // generate result options  
@@ -366,7 +370,8 @@ void renderTask() {
     task.concat(" ");
     task.concat("= ");
     task.concat(c);
-    
+    solution = String(task);
+    solution.replace("?", String(b));
   }
   
   lcd.clear();
@@ -382,14 +387,17 @@ void renderTask() {
 
 }
 
-void renderResultScreen() {
+bool renderResultScreen() {
+  bool retVal = false;
   lcd.clear();
   if (menuPos == trueResult) {
-    lcd.print("*Correct!*"); 
+    lcd.print("*You are great!*");
+    retVal = true;
   } else {
-    lcd.print("*Shit!*"); 
-  }
-  
+    lcd.print("*Oh, not quite!*"); 
+  }  
+  lcd.setCursor(0, 1);
+  lcd.print(solution); 
 }
 
 void setup()
@@ -423,10 +431,14 @@ void loop()
   } else {
     // check, whether result screen must be rendered
     if (bolShowResultScreen) {
-      renderResultScreen();
+      bool bolSuccess = renderResultScreen();
       bolShowResultScreen = false;
       menuPos = 0;
-      delay(waitResultScreen);
+      if (bolSuccess) {
+        delay(waitResultScreenSuccess);      
+      } else {
+        delay(waitResultScreen);              
+      }
     } else {
       // render Game Task
       if (!bolTaskRendered) {
