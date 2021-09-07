@@ -89,12 +89,6 @@ void restoreConfigFromEPROM() {
   // eq is default = 1, max 2 (meaning equations disabled)
   eq = EEPROM.read(2);
   if (eq < 1 || eq > 2) eq = 1;
-  Serial.print("level: ");
-  Serial.print(level);
-  Serial.print("op: ");
-  Serial.print(op);
-  Serial.print("eq: ");
-  Serial.print(eq);
 }
 
 void renderMenu() {
@@ -249,8 +243,6 @@ void renderTask() {
         if (random(1, 13) == 12) {
           b = 0;
         }
-        Serial.print("a:"); Serial.println(a);
-        Serial.print("b:"); Serial.println(b);
         c = a * b;
         if (curOp == opDIV) {
           // now convert to div calc: i.e. c / a = b
@@ -258,21 +250,12 @@ void renderTask() {
             b = a;
             a = c;
             c = a / b;
-            Serial.println("case1");
-            Serial.print("a:"); Serial.println(a);
-            Serial.print("b:"); Serial.println(b);
           } else if (b != 0) {
             a = c;
             c = a / b;
-            Serial.println("case2");
-            Serial.print("a:"); Serial.println(a);
-            Serial.print("b:"); Serial.println(b);
           } else {
             b = (int)random(1, levelBound[level - 1]);
             c = 0;
-            Serial.println("case3");
-            Serial.print("a:"); Serial.println(a);
-            Serial.print("b:"); Serial.println(b);
           }
         }
         break;
@@ -286,7 +269,7 @@ void renderTask() {
   trueResult = (int)random(0, 4);
   // determine whether to render an ordinary task or an equation
   // in 30% of tasks we want an equation, if equations are enabled
-  if (eq == 1 && (int)random(0,10) > 6) {
+  if (eq != 2 || (int)random(0,10) <= 6) {
     // we render an equation of the form a op ? = c (b is the answer)
     // generate result options  
     int q = getLowerRandom(0, c);
@@ -376,15 +359,6 @@ void renderTask() {
   
   lcd.clear();
   lcd.print(task);
-
-  Serial.println("..");
-  Serial.print("a:");
-  Serial.println(a);
-  Serial.print("b:");
-  Serial.println(b);
-  Serial.print("c:");
-  Serial.println(c);
-
 }
 
 bool renderResultScreen() {
@@ -403,7 +377,6 @@ bool renderResultScreen() {
 
 void setup()
 {
-  Serial.begin(9600);
   // init/reset global values
   lcd_key     = 0;
   adc_key_in  = 0;
