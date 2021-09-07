@@ -1,12 +1,27 @@
-//Sample using LiquidCrystal library
-#include <LiquidCrystal.h>
-#include <EEPROM.h>
-
 /*******************************************************
 
   Mathematical Trainer Quiz by Fabian Leuthold v1.0
 
+  This is an arduino based mathematical trainer app which
+  allows configuring difficulty level as well as operations
+  and lets the player choose the correct result from a
+  selection of 4 outcomes in a kind of multiple-choice 
+  question. An additional mode formulates tasks in the 
+  form of equations to make the complementary arithmetic 
+  operations more intuitive to understand.  
+
+  More infos can be found here: 
+  https://phabi.ch/2021/09/07/an-arduino-based-math-trainer/
+
+  Code is hosted here:
+  https://github.com/phabee/mathProfessor/blob/main/mathProfessor.ino
+  
+  Licensed under Apache License 2.0
+
 ********************************************************/
+
+#include <LiquidCrystal.h>
+#include <EEPROM.h>
 
 // select the pins used on the LCD panel
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
